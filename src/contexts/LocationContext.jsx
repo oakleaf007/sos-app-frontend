@@ -1,13 +1,13 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
-
+import { useAuth } from "./AuthContext";
 const LocationContext = createContext();
 
 
 export function LocationProvider({ children }) {
 
-    
+    const {isLoggedIn} = useAuth();
      const hasFetched = useRef(false);
     const nearByUrl =`http://localhost:4000/api/v1/nearbyfetch`;
 
@@ -20,10 +20,24 @@ export function LocationProvider({ children }) {
         fuel: [],
         fire:[]
     });
+    const watchIdRef = useRef(null);
+    const isActiveRef = useRef(true);
 
     useEffect(() => {
-        let watchId;
+      
         // getting location permission
+
+        if(!isLoggedIn){
+               if (watchIdRef.current) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current = null;
+        }
+
+        setLocation(null);
+
+        return;
+
+        }
         async function checkLocationPermission() {
             if (!navigator.permissions) return "unknown";
             const res = await navigator.permissions.query({ name: "geolocation" });
@@ -37,9 +51,9 @@ export function LocationProvider({ children }) {
 
                 if (permission.state === "denied") {
                     setLocationStatus("location permission denied");
-                    if (watchId) {
-                        navigator.geolocation.clearWatch(watchId);
-                        watchId = null;
+                    if (watchIdRef.current) {
+                        navigator.geolocation.clearWatch(watchIdRef.current);
+                        watchIdRef.current = null;
                     }
                 }
 
@@ -69,14 +83,14 @@ export function LocationProvider({ children }) {
    
 
         async function getGpsLocation() {
-            if (watchId) return;
+            if (watchIdRef.current) return;
 
             if (!navigator.geolocation) {
                 
                 setLocationStatus("not supported");
                 return;
             }
-            watchId = navigator.geolocation.watchPosition(
+            watchIdRef.current = navigator.geolocation.watchPosition(
                 position => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
@@ -119,6 +133,7 @@ export function LocationProvider({ children }) {
         }
 
         async function searchplace(query, lat, lon) {
+            if(!isActiveRef.current) return;
             const url = `${nearByUrl}?query=${query}&lat=${lat}&lon=${lon}`;
 
             const res = await fetch(url);
@@ -176,17 +191,28 @@ export function LocationProvider({ children }) {
 
 
         return () => {
-            if (watchId) navigator.geolocation.clearWatch(watchId);
+            if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current=null;
         }
 
-    }, [])
+    }, []);
+
+      function stopTracking(){
+         if (watchIdRef.current) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current=null;
+            isActiveRef.current = false;
+        }
+        }
+
     return (
-        <LocationContext.Provider value={{ location, locationStatus, nearby }}>
+        <LocationContext.Provider value={{ location, locationStatus, nearby ,stopTracking}}>
             {children}
         </LocationContext.Provider>
     )
 
 }
+
 
 export function useLocation() {
     return useContext(LocationContext);

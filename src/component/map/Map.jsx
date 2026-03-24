@@ -20,7 +20,7 @@ export default function Map() {
     const useMarker = useRef(null);
     const nearbyLayerRef = useRef(null);
     const isFirstLoad = useRef(true);
-
+    const apiUrl =`http://localhost:4000/api/v1`;
     useEffect(() => {
         if (mapref.current) return;
         
@@ -39,23 +39,47 @@ export default function Map() {
     }, []);
 
 useEffect(()=>{
+
+    async function sendLocation(lng, lat){
+        try{
+            const token = JSON.parse(localStorage.getItem("sostoken"));
+
+            const id = token.id
+            const res = await fetch(`${apiUrl}/storelocation`,{
+                method: "POST",
+                headers: {"Content-type":"application/json"},
+                body: JSON.stringify({id, lng, lat})
+            });
+
+            const data = await res.json()
+            if(!res.ok){
+                console.log(data.message);
+                return;
+            }
+
+            console.log(data.message)
+
+        }catch(err){
+            console.error(err);
+        }
+
+    }
   
-        if(!location || !mapref.current) return;
-       
-         
+        if(!location || !mapref.current) return;         
                 console.log(location);
                 const map =mapref.current;
-                
-          
-              
 
                  if(!useMarker.current){
+
                        useMarker.current=  L.marker([location.lat, location.lon], {
                 icon: L.divIcon({
                     className: "custom-marker",
                     html: "<div class='mark'></div>"
                 })
             }).addTo(mapref.current).bindPopup("You are here");
+
+
+
                 }else{
                     useMarker.current.setLatLng([location.lat, location.lon])
                 }
@@ -65,6 +89,7 @@ useEffect(()=>{
                   map.setView([location.lat, location.lon],18);
                 isFirstLoad.current=false;
              }
+             sendLocation(location.lon, location.lat);
                
 
 },[location]);
