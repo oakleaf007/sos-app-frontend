@@ -1,6 +1,6 @@
 
 import { LocationProvider, useLocation } from "../../contexts/LocationContext";
-import Map from "../map/Map";
+import MapView from "../map/Map";
 
 export function InnerMap() {
     const { locationStatus } = useLocation();
@@ -8,7 +8,7 @@ export function InnerMap() {
     return (
 <>
         { locationStatus && <p id="status">{locationStatus}</p>}
-        <Map/>
+       <MapView></MapView>
 
 </>
 )

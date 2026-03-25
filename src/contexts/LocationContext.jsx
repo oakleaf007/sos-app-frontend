@@ -2,10 +2,15 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { useAuth } from "./AuthContext";
+
+import socket from "../socket/socket";
+
 const LocationContext = createContext();
 
 
 export function LocationProvider({ children }) {
+
+
 
     const {isLoggedIn} = useAuth();
      const hasFetched = useRef(false);
@@ -14,6 +19,7 @@ export function LocationProvider({ children }) {
     const [location, setLocation] = useState(null);
     // const [ipLocation, setIpLocation] = useState(null);
     const [locationStatus, setLocationStatus] = useState("");
+    const [nearbyUsers, setNearbyUsers] = useState([]);
     const [nearby, setNearby] = useState({
         hospitals: [],
         police: [],
@@ -22,6 +28,35 @@ export function LocationProvider({ children }) {
     });
     const watchIdRef = useRef(null);
     const isActiveRef = useRef(true);
+
+    useEffect(()=>{
+        const token = JSON.parse(localStorage.getItem("sostoken"));
+
+        if(!token) return ;
+
+        const userId = token.id;
+        socket.connect();
+        socket.on("connect",()=>{
+            console.log("socket connected", socket.id);
+            socket.emit("register", userId);
+        })
+        socket.on("nearby:update", (data)=>{
+            setNearbyUsers((prev=[])=>{
+                const map = new Map();
+               prev.forEach(u=>{
+                if(u) map.set(u.userId, u);
+               });
+               map.set(data.userId, data);
+               return Array.from(map.values());
+            });
+           
+        });
+         return ()=>{
+        socket.disconnect();
+    }
+    },[]);
+
+   
 
     useEffect(() => {
       
@@ -206,7 +241,7 @@ export function LocationProvider({ children }) {
         }
 
     return (
-        <LocationContext.Provider value={{ location, locationStatus, nearby ,stopTracking}}>
+        <LocationContext.Provider value={{ location, locationStatus,nearbyUsers,setNearbyUsers, nearby ,stopTracking}}>
             {children}
         </LocationContext.Provider>
     )
