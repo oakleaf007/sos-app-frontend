@@ -81,7 +81,7 @@ useEffect(()=>{
                        useMarker.current=  L.marker([location.lat, location.lon], {
                 icon: L.divIcon({
                     className: "custom-marker",
-                    html: "<div class=''></div>"
+                    html: "<div class='mark'></div>"
                 })
             }).addTo(mapref.current).bindPopup("You are here");
 
